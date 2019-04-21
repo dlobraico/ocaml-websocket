@@ -26,8 +26,13 @@ module Async_IO = Websocket.Make(Cohttp_async.Io)
 open Async_IO
 
 let set_tcp_nodelay writer =
-  let socket = Socket.of_fd (Writer.fd writer) Socket.Type.tcp in
-  Socket.setopt socket Socket.Opt.nodelay true
+  let fd = Writer.fd writer in
+  match Fd.kind fd with
+  | Socket _ ->
+    let socket = Socket.of_fd (Writer.fd writer) Socket.Type.tcp in
+    Socket.setopt socket Socket.Opt.nodelay true
+  | _ -> ()
+;;
 
 let src =
   Logs.Src.create "websocket.async.client"
@@ -367,7 +372,7 @@ let upgrade_connection
       Deferred.unit
     in
     Monitor.protect ~finally begin fun () ->
-      set_tcp_nodelay writer;
+      (* set_tcp_nodelay writer; *)
       Deferred.all_unit [
         Deferred.any [
           transfer_end ();
